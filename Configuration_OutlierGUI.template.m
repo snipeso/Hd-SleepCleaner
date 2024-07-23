@@ -7,14 +7,27 @@
 % *************************************************************************
 
 % *** General
-chansID    = 1:128;      % The EEG data loaded in will be stored in a 
+eeg_source = 'E:\Data\Preprocessed\Cutting\MAT\Sleep';
+scoring_source = 'E:\Data\Scoring\Sleep';
+destination = 'E:\Data\Outliers\Sleep';    % Specify where you want the data saved:
+% destination = 'eeg';
+                        % 'scoring': same folder as the sleep scoring
+                        % 'eeg': same folder as the EEG data
+                        % 'artifacts': same folder as the artifacts
+                        % any other string will be interpreted as a
+                        % filepath.
+autoload = true;        % can either automatically load the next file 
+                        % (based on whether it's been done), or have the
+                        % user select one.
+chansID    = 1:128;     % The EEG data loaded in will be stored in a 
                         % matrix (channels x samples). Define here which
                         % channels you want to perform the artifact
                         % rejection on (the rows in your matrix). The 
                         % number of chosen channels will also determine the
                         % size of your output matrix (number of channels =
                         % number of rows).
-chans_excl  = [107 113];       % It makes sense to have an output matrix of the
+chans_excl  = [49 56 107 113 126 127];
+                        % It makes sense to have an output matrix of the
                         % same size as your EEG data matrix. However, you
                         % can still have channels you want to exclude from
                         % artifact rejection, because they do not capture
@@ -23,19 +36,13 @@ chans_excl  = [107 113];       % It makes sense to have an output matrix of the
                         % automatically as "bad", so that all epochs are
                         % labeled as "bad" = 0. They will not appear in the
                         % artifact removal procedure.
-altern_ref = [49 56];   % Alternative reference. With a button press in the
-                        % GUI, the EEG data can be re-referenced to these
-                        % channels. If several channels are indicated, the
-                        % EEG will be referenced to the mean of these 
-                        % channels. Only the visualization of the raw EEG
-                        % traces is affected by this.
-chansAvgRef = setdiff(chansID, [49 56 107 113, 125, 126, 127, 128, 48, 119, 43, 63, 68, 73, 81, 88, 94, 99, 120]); 
-                       % Channels used for computing the average reference. 
-% Depending on your electrode setup, it may be sensible to exclude specific 
-% channels that for example record EMG rather than EEG. Channels prone to artifacts 
-% can also be excluded to prevent them from influencing the average reference.
-
-                        
+outlier_types = {'voltEEG', 'SWA', 'BETA_RZ'};
+                        % Choose which features to clean, and in which
+                        % order. Options include:
+                        % 'devEEG': deviation from EEG.
+                        % 'SWA': raw slow wave activity
+                        % 'SWA_RZ': robust z-scored slow wave activity.
+                        % 'BETA_RZ': robust z-scored beta power.
 
 % *** Sleep Scoring
 scoringlen = 30;        % The length of sleep scored epochs. This variable 
@@ -64,7 +71,7 @@ A          =  'A';      % Artifacts (some labs score epochs with artifacts
                         % with a distinct label, indicate it here. Other
                         % labs score those epochs with the respective sleep
                         % stage, then ignore this value.
-stages     = {N1, N2, N3};
+stages     = {N1, N2, N3, N4, REM, W};
                         % In case you load in your sleep scoring file, the
                         % artifact rejectino routine will only be performed
                         % in epochs belonging to those sleep stages. All
@@ -147,17 +154,17 @@ pname_eeglab = 'D:\Sara\Matlab\backup_Git\GitHub\toolboxes\eeglab_current\eeglab
                         % downloaded here: https://eeglab.org/download/
 addpath(pname_eeglab);  % Add EEGLAB to paths
 
-% *** Output path
-destination = 'eeg';    % Specify where you want the final output saved. 
-                        % You can either choose one of the following
-                        % options or give a specific filepath. A filepath
-                        % example would be 'C:\PhDScripts\SleepEEG\'.
-                        % Options are:
-                        % 'eeg':        same folder as EEG data                        
-                        % 'scoring':    same folder as sleep scoring
-                        % 'artndxn':    same folder as artndxn
-                        % Any other string will be interpreted as a
-                        % filepath.
+% % *** Output path
+% destination = 'eeg';    % Specify where you want the final output saved. 
+%                         % You can either choose one of the following
+%                         % options or give a specific filepath. A filepath
+%                         % example would be 'C:\PhDScripts\SleepEEG\'.
+%                         % Options are:
+%                         % 'eeg':        same folder as EEG data                        
+%                         % 'scoring':    same folder as sleep scoring
+%                         % 'artndxn':    same folder as artndxn
+%                         % Any other string will be interpreted as a
+%                         % filepath.
 
 
 % *** Add helper functions

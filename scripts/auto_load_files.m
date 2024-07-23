@@ -31,55 +31,46 @@ end
 % *** Grab files
 
 % EEG
-[nameEEG, pathEEG]  = uigetfile({'*.mat','EEG file (*.mat)'}, ...
-    'Select file containing EEG structure', ...
-    fullfile(eeg_source, 'Select .mat file with EEG structure'), ...
-    'MultiSelect', 'off');
+pathEEG = eeg_source;
+EEG_Content = getContent(eeg_source);
+EEG_Content(~contains(EEG_Content, '.mat')) = [];
+ART_Content = getContent(destination);
+ART_Content(~contains(ART_Content, '.mat')) = [];
+ART_Content = extractBefore(ART_Content, '_artndxn');
+EEG_Cores = extractBefore(EEG_Content, '.mat');
 
-if nameEEG == 0
-    error('No EEG file selected')
+EEG_Content(ismember(EEG_Cores, ART_Content)) = [];
+
+if isempty(EEG_Content)
+    error("You're done!")
 end
 
-% sleep scoring
-Name = split(nameEEG, '_');
-scoring_path = fullfile(scoring_source, strjoin(Name(1:3), '_'));
-Content = deblank(string(ls(scoring_path)));
-if nnz(contains(Content, 'rh.vis'))==1
-    VIS = Content(contains(Content, 'rh.vis'));
-else
-    VIS = 'pick one';
-end
-[nameVIS, pathVIS]  = uigetfile({'*.mat;*.vis;*.txt','Scoring file (*.mat, *.vis, *.txt)'}, ...
-    'Select file containing sleep scoring', ...
-    fullfile(scoring_path, VIS), ...
-    'MultiSelect', 'off');
+nameEEG = EEG_Content(randi(numel(EEG_Content)));
+  VIS = 0;
+  nameVIS = 0;
 
+  pathART = 0;
+  nameART = 0;
 
-% previous artifact rejection
-[nameART, pathART]  = uigetfile({'*.mat','Artndxn file (*.mat)'}, ...
-    'Do you want to modify an alerady existing artifact rejection output?', ...
-    fullfile(pathEEG, '..', '..', 'Select an artndxn.mat file to modify, cancel otherwise'), ...
-    'MultiSelect', 'off');
 nameMAN = 0;
 pathMAN = 0;
-% [nameMAN, pathMAN]  = uigetfile({'*.mat','Manual artifact rejection file (*.mat)'}, ...
-%     'Manual artifact rejection', ...
-%     fullfile(pathEEG, '..', '..', 'Select file containing manual artifact rejection, cancel otherwise'), ...
-%     'MultiSelect', 'off');
-
-% Grab manual artifact rejection during sleep scoring
-if ~isempty(manual)
-    [nameMAN, pathMAN]  = uigetfile({'*.mat; *.json','Manual artifact rejection file (*.mat, *.json)'}, ...
-        'Manual artifact rejection', ...
-        fullfile(lookup_eeg, 'Select file containing manual artifact rejection, cancel otherwise'), ...
-        'MultiSelect', 'off');
-else
-    nameMAN=''; pathMAN='';
-end
 
 
+% TODO, search for scoring, if present, use it.
 % ### Load sleep scoring
 % #########################
+nameVISfolder = extractBefore(nameEEG, '_Cutting.mat'); % WANRING: LSM-specific
+pathVIS = fullfile(scoring_source, nameVISfolder);
+Content = getContent(pathVIS);
+Content(~contains(Content, '.vis')) = [];
+if any(contains(Content, '_rh'))
+    nameVIS = Content(contains(Content, '_rh'));
+elseif ~isempty(Content)
+     nameVIS = Content(contains(Content, '.vis'));
+else
+    nameVIS = 0;
+end
+
 
 % *** Load sleep scoring
 fileVIS = fullfile(pathVIS, nameVIS);        % Sleep scoring file
@@ -114,15 +105,6 @@ elseif endsWith(fileVIS, '.vis')
     [vistrack, vissymb, offs] = visfun.readtrac(fileVIS, 1);     % Load manual artifact rejection
     visnum                    = visfun.numvis(vissymb, offs);    % Load sleep scoring
     fprintf('** Load %s\n', nameVIS)
-
-
-elseif endsWith(fileVIS, '.json')
-    % .vis files
-%     [vistrack, vissymb, offs] = visfun.readtrac(fileVIS, 1);     % Load manual artifact rejection
-%     visnum                    = visfun.numvis(vissymb, offs);    % Load sleep scoring
-    [visnum, vistrack] = read_json_fromSH(fileVIS);
-    fprintf('** Load %s\n', nameVIS)
-
 
 elseif endsWith(fileVIS, '.txt')
     % .txt files
@@ -174,12 +156,8 @@ if ~isempty(visnum)
     end
 
     % Turn to matrix
-    stages = cell2mat(stages); 
+    stages = cell2mat(stages);
 end
-
-% *** Split sleep epochs if needed
-[visnum] = split_sleep_epochs(visnum, scoringlen, epolen);
-   
 
 
 % ### Load manual artifact rejection
@@ -233,8 +211,10 @@ end
 
 % *** Channel locations
 if isempty(EEG.chanlocs)
-EEG.chanlocs = readlocs(fname_chanlocs);      % Channel locations;
+    EEG.chanlocs = readlocs(fname_chanlocs);      % Channel locations;
 end
+
+EEG = eeg_checkset(EEG);
 
 % if no scoring provide it, make it based on EEG
 if isempty(visnum)
@@ -272,8 +252,10 @@ else
     % No file
     [~, outART]     = fileparts(nameEEG);        % Filename of output file
     outART          = [outART, '_artndxn.mat'];  % Append filename
-    artndxn         = [];    
+    artndxn         = [];
 end
+
+outART = strjoin(outART, '');
 
 % identify location to save output
 switch destination
@@ -292,8 +274,8 @@ end
 fprintf('** Artndxn will be saved here: %s\n', pathART)
 
 % Evaluation plot name
-[~, namePLOT]   = fileparts(outART);        % Filename of plot
-namePLOT        = [namePLOT, '.png'];       % Filename of plot
+namePLOT   = extractBefore(outART, '.');        % Filename of plot
+namePLOT        = strjoin([namePLOT, '.png'], '');       % Filename of plot
 
 
 % *** Convert to single to save space

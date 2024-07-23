@@ -45,7 +45,7 @@ if EEG.nbchan > 1
         'style', 'map', ...
         'whitebk', 'on', ...
         'maplimits', [min(SWA01x) max(SWA01x)], ...    
-        'electrodes','on', 'headrad',.5, 'intrad',.7, 'plotrad',.7, 'colormap', L18);
+        'electrodes','on', 'headrad','rim', 'intrad',.7, 'plotrad',.7, 'colormap', L18);
     
     % Colorbar
     p1=get(gca, 'Position'); 
@@ -61,7 +61,7 @@ if EEG.nbchan > 1
         'style', 'map', ...
         'whitebk', 'on', ...
         'maplimits', [min(SWA02x) max(SWA02x)], ...    
-        'electrodes','on', 'headrad',.5, 'intrad',.7, 'plotrad',.7, 'colormap', L18);
+        'electrodes','on', 'headrad','rim', 'intrad',.7, 'plotrad',.7, 'colormap', L18);
     
     % Colorbar
     p1=get(gca, 'Position'); 
@@ -76,7 +76,7 @@ if EEG.nbchan > 1
         'style', 'map', ...
         'whitebk', 'on', ...
         'maplimits', [min(SWA03x) max(SWA03x)], ...    
-        'electrodes','on', 'headrad',.5, 'intrad',.7, 'plotrad',.7, 'colormap', L18);
+        'electrodes','on', 'headrad','rim', 'intrad',.7, 'plotrad',.7, 'colormap', L18);
     
     % Colorbar
     p1=get(gca, 'Position'); 
@@ -113,7 +113,8 @@ barh(prcnt_epoexcl, 'FaceColor', uint8([200 200 200]), 'DisplayName', 'Excl. cha
 barh(prcnt_epolow, 'r', 'DisplayName', 'Bad channels');
 
 % Make pretty
-xlim([min([prcnt_cleanEPO; cleanThresh])*100 100]); xlabel(sprintf('Proportion of clean epochs (%%)\nin sleep stages %s', num2str(stages))); ylabel('Channel ID'); yticks(4:4:size(EEG.data, 1)); 
+% xlim([min([prcnt_cleanEPO; cleanThresh])*100 100]); 
+xlabel(sprintf('Proportion of clean epochs (%%)\nin sleep stages %s', num2str(stages))); ylabel('Channel ID'); yticks(4:4:size(EEG.data, 1)); ylim([1 size(artndxn, 1)]);
 plot(repmat(cleanThresh, 1, length(prcnt_cleanEPO)), 1:length(prcnt_cleanEPO), ':', 'LineWidth', 2, 'DisplayName', 'Threshold')
 if EEG.nbchan > 1
     ylim([1 size(artndxn, 1)]);

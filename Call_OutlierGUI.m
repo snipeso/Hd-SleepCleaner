@@ -14,22 +14,35 @@ clearvars;
 close all;
 clc;
 
+tic;
+
 % *** Call configuration file
 pmain = fileparts(mfilename('fullpath'));           % Path to this script
 run(fullfile(pmain, 'Configuration_OutlierGUI.m'))  % Calls configurations
 
 % *** Call script that loads files
-run('Load_files.m')
+if exist('autoload', 'var') && autoload
+    run('auto_load_files.m')
+else
+    run('Load_files.m')
+end
+
 
 % *** Preprocess EEG
 run('Preprocess_EEG.m')
 
+% remove eye artifacts
+[EEG, chans_excl] = removeEyes(EEG, chans_excl);
+
 
 % ### Outlier routine (original reference)
 % ###########################################
+%%
+
 
 % Work with pre-defined channels
 EEG = pop_select(EEG, 'channel', chansID);
+
 
 % Compute marker (original reference)
 [M1] = compute_marker(EEG, epolen, stages_of_interest, artndxn, chans_excl, ...
@@ -47,11 +60,11 @@ EEG = pop_select(EEG, 'channel', chansID);
 %     'H2', H2);
 
 % Outlier routine on original referenced EEG
-artndxn = outlier_routine(EEG, M1, artndxn, visnum, 8, 10, 8, ...
-    'scoringlen', epolen, ...
+artndxn = outlier_routine(EEG, M1, artndxn, visnum, 8, 10, 8, outlier_types, ...
+    'stages', stages, ...    
     'stages_of_interest', stages_of_interest, ...
     'chans_excl', chans_excl, ...
-    'altern_ref', altern_ref);
+    'scoringlen', scoringlen);
 
 
 % ### Outlier routine (average reference)
@@ -74,8 +87,8 @@ if EEG.nbchan > 1
         'H2', H2);
     
     % Outlier routine on average referenced EEG
-    artndxn = outlier_routine(EEG, M2, artndxn, visnum, 10, 12, 10, ...
-        'scoringlen', epolen, ...        
+    artndxn = outlier_routine(EEG, M2, artndxn, visnum, 10, 12, 10, outlier_types, ...
+        'scoringlen', scoringlen, ...        
         'stages_of_interest', stages_of_interest, ...
         'chans_excl', chans_excl, ...
         'altern_ref', altern_ref);
@@ -83,13 +96,15 @@ end
 
 % Save
 newART = avoid_overwrite(outART, pathART);
-save(fullfile(pathART, newART), 'artndxn', 'visnum', 'visgood')
+save(fullfile(pathART, newART), 'artndxn', 'visnum', 'visgood', 'scoringlen')
 
 % Evaluation plots
 run('Evaluation_plots.m')
 print(gcf, fullfile(pathART, namePLOT), '-dpng')
 
-% 
+clc
+disp(['Finished in ', num2str(toc/60), 'min'])
+
 % % *** Call for debugging
 % [ manoutSWA ] = OutlierGUI(M1.SWA, ...
 %     'sleep', visnum, ...
@@ -99,7 +114,6 @@ print(gcf, fullfile(pathART, namePLOT), '-dpng')
 %     'topo', M1.SWA, ...
 %     'spectrum', M1.FFTtot, ...
 %     'epo_select', stages_of_interest, ...             
-%     'epo_len', epolen, ...
-%     'epo_thresh', 8, ...
-%     'altern_ref', altern_ref);
+%     'epo_len', scoringlen, ...
+%     'epo_thresh', 8);
             
